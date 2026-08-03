@@ -1,5 +1,5 @@
-mcp>=2.0.0
-langchain-mcp-adapters>=0.2.0 
+mcp>=1.0.0,<2.0.0
+langchain-mcp-adapters>=0.1.0
 langchain-openai
 python-dotenv
 tavily-python
