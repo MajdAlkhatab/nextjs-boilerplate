@@ -844,7 +844,7 @@ export default function Home() {
                         
                         <div className="bg-white/30 backdrop-blur-md rounded-xl p-2 shadow-xl border border-white/40 flex flex-col items-end z-10">
                           <div className="text-[8px] text-gray-900 uppercase tracking-widest font-extrabold mb-0.5 drop-shadow-md">
-                            Totalt / Person
+                            Pris
                           </div>
                           <div className="text-xl font-black text-gray-900 leading-none mb-1.5 drop-shadow-md">
                             {formatPrice(econ.totalCurrent!, displayCurrency, latestRates)}
@@ -857,7 +857,7 @@ export default function Home() {
                     ) : econ.totalCurrent != null ? (
                       <div className="absolute top-14 right-4 z-10 bg-white/30 backdrop-blur-md rounded-xl p-2 shadow-xl border border-white/40 flex flex-col items-end">
                         <div className="text-[8px] text-gray-900 uppercase tracking-widest font-extrabold mb-0.5 drop-shadow-md">
-                          Totalt / Person
+                          Pris
                         </div>
                         <div className="text-xl font-black text-gray-900 leading-none drop-shadow-md">
                           {formatPrice(econ.totalCurrent, displayCurrency, latestRates)}
