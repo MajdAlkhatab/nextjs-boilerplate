@@ -1,4 +1,3 @@
-from langchain_mcp_adapters.client import MultiServerMCPClient
 from fastapi.responses import StreamingResponse, JSONResponse
 from datetime import date, timedelta, datetime, timezone
 from typing import TypedDict, Annotated, List, Union
@@ -178,26 +177,21 @@ def web_search(query: str) -> str:
     """Search the web for current data (transport, weather, activities)."""
     return str(tavily.search(query))
 
-taxi_executor = create_agent(model="gpt-5-nano", tools=[web_search], system_prompt="You are a taxi expert. Search for the exact taxi fare price and duration from the airport to the hotel. Return ONLY the price and duration without fluff. Reply strictly in Swedish.")
-bus_executor = create_agent(model="gpt-5-nano", tools=[web_search], system_prompt="You are a public transport expert. Search for the bus/train ticket price and duration from the airport to the hotel. Return ONLY the price and duration without fluff. Reply strictly in Swedish.")
-app_executor = create_agent(model="gpt-5-nano", tools=[web_search], system_prompt="You are a ride-hailing expert. Search for Uber/Bolt fare prices and duration from the airport to the hotel. Return ONLY the price and duration without fluff. Reply strictly in Swedish.")
-transport_main_agent = create_agent(model="gpt-5-nano", tools=[], system_prompt="Compare the Taxi, Bus, and App choices. Output a clean, simple bulleted list in Swedish with NO introductory text. Format exactly like this:\n- **Taxi**: [Pris] ([Tidsåtgång])\n- **Buss**: [Pris] ([Tidsåtgång])\n- **Uber/Bolt**: [Pris] ([Tidsåtgång])\n\n**Slutgiltigt val**: [Din korta rekommendation på svenska].")
 
-weather_executor = create_agent(model="gpt-5-nano", tools=[web_search], system_prompt="You are a weather expert. Get forecast. Return short answer strictly in Swedish.")
-activities_executor = create_agent(model="gpt-5-nano", tools=[web_search], system_prompt="You are an activities expert. Get free/cheap things to do. Return short answer strictly in Swedish.")
-culture_executor = create_agent(model="gpt-5-nano", tools=[], system_prompt="You are a cultural expert. Research the destination and provide exactly 6 things strictly in Swedish: one 'Gör' (Do), one 'Gör inte' (Don't), one local slang word (with meaning), one strict dining/tipping rule, a one-sentence 'vibe check' of the city's pace, and a list of the top 3 must-try local foods.")
-activity_main_agent = create_agent(model="gpt-5-nano", tools=[], system_prompt="Summarize the destination in Swedish. Use exactly three Markdown headers: '### 🌤️ Väder', '### 🎯 Toppaktiviteter', and '### 🏛️ Kultur & Vett och etikett'. Under each header, provide Weather (3 short, punchy bullet points) Activities (6 short, punchy bullet points) Culture & Etiquette (Exactly 6 bullet points: Gör, Gör inte, Slang, Restaurang/Dricks, Vibe, and Topp 3 maträtter. CRITICAL: Each must be strictly one short sentence). CRITICAL: DO NOT include budget breakdowns, total trip estimates, or flight/hotel costs.")
+# COMBINED TRANSPORT AGENT
+single_transport_agent = create_agent(
+    model="gpt-5-nano",
+    tools=[web_search],
+    system_prompt="You are a local transport expert. Search for taxi, public transport (bus/train), and ride-hailing (Uber/Bolt) prices and duration from the airport to the hotel. Output a clean bulleted list strictly in Swedish with NO introductory text. Format exactly like this:\n- **Taxi**: [Pris] ([Tidsåtgång])\n- **Buss**: [Pris] ([Tidsåtgång])\n- **Uber/Bolt**: [Pris] ([Tidsåtgång])\n\n**Slutgiltigt val**: [Din korta rekommendation på svenska]."
+)
 
-tavily_currency_executor = create_agent(model="gpt-5-nano", tools=[web_search], system_prompt="Search web for exchange rate. Return short answer without mentioning any dates. Reply strictly in Swedish.")
+# COMBINED ACTIVITY AGENT
+single_destination_agent = create_agent(
+    model="gpt-5-nano", 
+    tools=[web_search], 
+    system_prompt="You are a destination expert. Research the weather forecast, cheap/free activities, and local cultural etiquette for the destination. Summarize in Swedish. Use exactly three Markdown headers: '### 🌤️ Väder', '### 🎯 Toppaktiviteter', and '### 🏛️ Kultur & Vett och etikett'. Under each header, provide:\n- Weather (3 short bullet points)\n- Activities (6 short bullet points)\n- Culture & Etiquette (6 bullet points: Gör, Gör inte, Slang, Restaurang/Dricks, Vibe, and Topp 3 maträtter). CRITICAL: Each must be strictly one short sentence. DO NOT include budget breakdowns or total trip estimates."
+)
 
-_frankfurter_executor = None
-async def get_frankfurter_executor():
-    global _frankfurter_executor
-    if _frankfurter_executor is None:
-        client = MultiServerMCPClient({"frankfurter": {"transport": "streamable_http", "url": "https://mcp.frankfurter.dev/"}})
-        tools = await client.get_tools()
-        _frankfurter_executor = create_agent(model="gpt-5-nano", tools=tools, system_prompt="Use get_rates to find exchange rate. Return short answer without mentioning any dates. Reply strictly in Swedish.")
-    return _frankfurter_executor
 
 #  5. LANGGRAPH NODES 
 async def node_trip_deals(state: TravelPlanState):
@@ -353,37 +347,27 @@ async def node_transport(state: TravelPlanState):
     hotel_name = state['hotel'].get('name', state['hotel_area']) if state.get('hotel') else state['hotel_area']
     loc = f"{hotel_name}, {state['destination']}"
     query = f"Airport: {state['flight']['arrival_airport_code']}\nDates: {state['start_date']}-{state['end_date']}\nHotel: {loc}\nCRITICAL: Convert and state all prices in {state['home_currency']}."
-    t_res, b_res, a_res = await asyncio.gather(
-        taxi_executor.ainvoke({"messages": [HumanMessage(content=query)]}),
-        bus_executor.ainvoke({"messages": [HumanMessage(content=query)]}),
-        app_executor.ainvoke({"messages": [HumanMessage(content=query)]}),
-    )
-    summary = f"Taxi: {t_res['messages'][-1].content}\nBus: {b_res['messages'][-1].content}\nApp: {a_res['messages'][-1].content}\nCRITICAL: Format all final output prices in {state['home_currency']}."
-    final = await transport_main_agent.ainvoke({"messages": [HumanMessage(content=summary)]})
+    
+    final = await single_transport_agent.ainvoke({"messages": [HumanMessage(content=query)]})
     return {"transport_summary": final["messages"][-1].content}
 
 async def node_activities(state: TravelPlanState):
     query = f"Destination: {state['destination']}, {state['country']}\nDates: {state['start_date']} to {state['end_date']}\nCRITICAL: Convert and state all prices in {state['home_currency']}."
-    w_res, a_res, c_res = await asyncio.gather(
-        weather_executor.ainvoke({"messages": [HumanMessage(content=query)]}),
-        activities_executor.ainvoke({"messages": [HumanMessage(content=query)]}),
-        culture_executor.ainvoke({"messages": [HumanMessage(content=query)]}),
-    )
-    summary = f"Weather: {w_res['messages'][-1].content}\nActs: {a_res['messages'][-1].content}\nCulture: {c_res['messages'][-1].content}\nCRITICAL: Format any prices mentioned in {state['home_currency']}."
-    final = await activity_main_agent.ainvoke({"messages": [HumanMessage(content=summary)]})
+    
+    final = await single_destination_agent.ainvoke({"messages": [HumanMessage(content=query)]})
     return {"activity_summary": final["messages"][-1].content}
 
 async def node_currency(state: TravelPlanState):
-    query = f"Exchange rate from {state['home_currency']} currency to {state['country']} currency?"
+    base = state['home_currency']
+    url = f"https://api.frankfurter.dev/v1/latest?from={base}"
     try:
-        frank_exec = await get_frankfurter_executor()
-        res = await frank_exec.ainvoke({"messages": [HumanMessage(content=query)]})
-        response = res["messages"][-1].content
-        if len(response.strip()) < 20: raise ValueError("Too short.")
-        ans = response
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req) as response:
+            data = json.loads(response.read().decode())
+            rates = data.get("rates", {})
+            ans = f"1 {base} exchange rates: " + ", ".join([f"{k}: {v}" for k, v in rates.items()])
     except Exception:
-        res = await tavily_currency_executor.ainvoke({"messages": [HumanMessage(content=query)]})
-        ans = res["messages"][-1].content
+        ans = "Valutainformation ur funktion."
     return {"currency_summary": ans}
 
 async def node_synthesize(state: TravelPlanState):
