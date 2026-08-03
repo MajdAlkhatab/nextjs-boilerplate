@@ -83,7 +83,7 @@ export async function POST(request: Request) {
                           border: '3px solid rgba(255, 255, 255, 0.8)', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)', marginTop: hasSavings ? '32px' : '0' 
                         },
                         children: [
-                          { type: 'span', props: { style: { fontSize: '32px', color: '#1f2937', textTransform: 'uppercase', letterSpacing: '6px', fontWeight: 800, marginBottom: '16px' }, children: 'FLYG & HOTELL' } },
+                          { type: 'span', props: { style: { fontSize: '32px', color: '#1f2937', textTransform: 'uppercase', letterSpacing: '6px', fontWeight: 800, marginBottom: '16px' }, children: 'FLYG & HOTELL / PERSON' } },
                           { type: 'span', props: { style: { fontSize: '120px', fontWeight: 900, color: '#111827', lineHeight: 1, marginBottom: hasSavings ? '32px' : '0' }, children: `${economics.totalCurrent.toLocaleString('sv-SE')} kr` } },
                           hasSavings ? { 
                             type: 'div', 

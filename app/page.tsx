@@ -94,15 +94,20 @@ function nightsBetween(start?: string, end?: string): number | null {
 }
 
 function getDealEconomics(deal: TravelDeal) {
+  const travelers = deal.travelers || 1;
+
   const flightCurrent = deal.flight?.price ?? null;
   const flightOriginal = deal.flight?.average_price ?? null;
 
-  const hotelTotalCurrent = deal.hotel?.total_rate?.extracted_lowest ?? null;
+  const baseHotelCurrent = deal.hotel?.total_rate?.extracted_lowest ?? null;
+  const hotelTotalCurrent = baseHotelCurrent != null ? baseHotelCurrent / travelers : null;
+
   const hotelPct = parseDealPercent(deal.hotel?.deal);
-  const hotelTotalOriginal =
-    hotelTotalCurrent != null && hotelPct != null && hotelPct > 0 && hotelPct < 100
-      ? hotelTotalCurrent / (1 - hotelPct / 100)
+  const baseHotelOriginal =
+    baseHotelCurrent != null && hotelPct != null && hotelPct > 0 && hotelPct < 100
+      ? baseHotelCurrent / (1 - hotelPct / 100)
       : null;
+  const hotelTotalOriginal = baseHotelOriginal != null ? baseHotelOriginal / travelers : null;
 
   const nights = nightsBetween(deal.start_date, deal.end_date);
 
@@ -839,7 +844,7 @@ export default function Home() {
                         
                         <div className="bg-white/30 backdrop-blur-md rounded-xl p-2 shadow-xl border border-white/40 flex flex-col items-end z-10">
                           <div className="text-[8px] text-gray-900 uppercase tracking-widest font-extrabold mb-0.5 drop-shadow-md">
-                            Totalt pris
+                            Totalt / Person
                           </div>
                           <div className="text-xl font-black text-gray-900 leading-none mb-1.5 drop-shadow-md">
                             {formatPrice(econ.totalCurrent!, displayCurrency, latestRates)}
@@ -852,7 +857,7 @@ export default function Home() {
                     ) : econ.totalCurrent != null ? (
                       <div className="absolute top-14 right-4 z-10 bg-white/30 backdrop-blur-md rounded-xl p-2 shadow-xl border border-white/40 flex flex-col items-end">
                         <div className="text-[8px] text-gray-900 uppercase tracking-widest font-extrabold mb-0.5 drop-shadow-md">
-                          Totalt pris
+                          Totalt / Person
                         </div>
                         <div className="text-xl font-black text-gray-900 leading-none drop-shadow-md">
                           {formatPrice(econ.totalCurrent, displayCurrency, latestRates)}
