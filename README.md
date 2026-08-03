@@ -25,17 +25,17 @@ If humans did this, it would be slow and costly. You would need a researcher, a 
 
 ## Key Files
 
-> **The Core Engine:** `api/generate-trip.py`
+> **The Core Engine:** [`api/generate-trip.py`](api/generate-trip.py)
 > This file contains all the agent logic, prompts, and the LangGraph state machine.
 
 | Purpose | File Path |
 |---|---|
-| ⭐ **Agent Logic & Prompts** | **`api/generate-trip.py`** |
-| **Frontend UI** | `app/page.tsx` |
-| **Schedule & Timing** | `vercel.json` |
-| **Cron Trigger & Save** | `app/api/cron/route.ts` |
-| **Read & Serve Deals** | `app/api/get-deals/route.ts` |
-| **Publish Content** | `app/api/publish/route.ts` |
-| **Manual Save & Publish** | `app/api/save-and-publish/route.ts` |
-| **Privacy Policy** | `app/privacy/page.tsx` |
-| **Terms of Service** | `app/tos/page.tsx` |
+| ⭐ **Agent Logic & Prompts** | **[`api/generate-trip.py`](api/generate-trip.py)** |
+| **Frontend UI** | [`app/page.tsx`](app/page.tsx) |
+| **Schedule & Timing** | [`vercel.json`](vercel.json) |
+| **Cron Trigger & Save** | [`app/api/cron/route.ts`](app/api/cron/route.ts) |
+| **Read & Serve Deals** | [`app/api/get-deals/route.ts`](app/api/get-deals/route.ts) |
+| **Publish Content** | [`app/api/publish/route.ts`](app/api/publish/route.ts) |
+| **Manual Save & Publish** | [`app/api/save-and-publish/route.ts`](app/api/save-and-publish/route.ts) |
+| **Privacy Policy** | [`app/privacy/page.tsx`](app/privacy/page.tsx) |
+| **Terms of Service** | [`app/tos/page.tsx`](app/tos/page.tsx) |
